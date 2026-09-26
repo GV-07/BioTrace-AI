@@ -80,6 +80,12 @@ if "admin_logged_in" not in st.session_state:
 if "show_admin_login" not in st.session_state:
   st.session_state.show_admin_login = False
 
+# --- REGISTRATION CLEARING STATES ---
+# We initialize these empty strings so Streamlit knows they exist before rendering
+for key in ["reg_user", "reg_email", "reg_pw", "reg_conf_pw"]:
+    if key not in st.session_state:
+        st.session_state[key] = ""
+
 t = UI_TEXT[st.session_state.language]
 
 # ==========================================
@@ -100,9 +106,33 @@ def show_admin_db_view():
     
     conn = sqlite3.connect("biotrace.db")
     
+    # --- USERS TABLE & DELETION TOOL ---
     st.markdown("### 👤 Registered Users")
     users_df = pd.read_sql_query("SELECT * FROM users", conn)
     st.dataframe(users_df, use_container_width=True)
+    
+    st.markdown("#### 🗑️ Remove User Account")
+    user_list = users_df["username"].tolist() if not users_df.empty else []
+    
+    with st.form("delete_user_form"):
+        col_select, col_btn = st.columns([4, 1], vertical_alignment="bottom")
+        with col_select:
+            user_to_delete = st.selectbox("Select a patient to permanently delete:", user_list)
+        with col_btn:
+            delete_submit = st.form_submit_button("Delete User", type="primary", use_container_width=True)
+            
+        if delete_submit and user_to_delete:
+            cursor = conn.cursor()
+            # Delete user credentials
+            cursor.execute("DELETE FROM users WHERE username = ?", (user_to_delete,))
+            # Cascade delete their health records
+            cursor.execute("DELETE FROM medications WHERE username = ?", (user_to_delete,))
+            cursor.execute("DELETE FROM fitness_logs WHERE username = ?", (user_to_delete,))
+            conn.commit()
+            st.success(f"User '{user_to_delete}' and all associated records deleted.")
+            st.rerun()
+
+    st.markdown("---")
     
     st.markdown("### 💊 Active Medications")
     meds_df = pd.read_sql_query("SELECT * FROM medications", conn)
@@ -134,7 +164,6 @@ def show_login_page():
   </script>
   """, height=0, width=0)
 
-  # Removed the manual <br><br> line breaks to shrink top spacing
   col1, col2, col3 = st.columns([1, 2, 1])
   with col2:
     
@@ -146,7 +175,6 @@ def show_login_page():
           st.session_state.show_admin_login = not st.session_state.show_admin_login
           st.rerun()
           
-      # Added margin-bottom to remove the gap left by the hidden button
       st.markdown("""
       <style>
       div[data-testid="stButton"] button[kind="secondary"] {
@@ -176,7 +204,6 @@ def show_login_page():
         return 
 
     # --- NORMAL PATIENT LOGIN ROUTE ---
-    # Removed the redundant BioTrace AI <h2> text and pulled the subtitle closer
     st.markdown("<p style='text-align: center; color: gray; margin-top: 10px; margin-bottom: 20px;'>Secure Healthcare Monitoring Platform</p>", unsafe_allow_html=True)
 
     tab_login, tab_register = st.tabs(["🔒 Login", "📝 Register"])
@@ -199,6 +226,20 @@ def show_login_page():
               st.error("Please enter both username and password.")
 
     with tab_register:
+        # 1. Show success message
+        if st.session_state.get("reg_success_msg"):
+            st.success("Account created successfully! You can now log in.")
+            st.session_state.reg_success_msg = False
+
+        # 2. CRITICAL FIX: Clear the variables BEFORE the widgets are drawn
+        if st.session_state.get("clear_reg"):
+            st.session_state.reg_user = ""
+            st.session_state.reg_email = ""
+            st.session_state.reg_pw = ""
+            st.session_state.reg_conf_pw = ""
+            st.session_state.clear_reg = False
+
+        # 3. Render Widgets
         new_username = st.text_input("Choose a Username", key="reg_user")
         email = st.text_input("Email Address", key="reg_email")
         new_pw = st.text_input("Create Password", type="password", key="reg_pw")
@@ -220,6 +261,7 @@ def show_login_page():
                 
         conf_pw = st.text_input("Confirm Password", type="password", key="reg_conf_pw")
 
+        # 4. Form Submission
         if st.button("Create Account", type="primary", use_container_width=True):
             if not new_username or not email or not new_pw or not conf_pw:
                 st.error("Please fill out all required fields.")
@@ -231,9 +273,13 @@ def show_login_page():
                 st.error("Passwords do not match.")
             else:
                 if register_user(new_username, email, new_pw):
-                    st.success("Account created successfully! You can now log in.")
+                    st.session_state.reg_success_msg = True
+                    # 5. Tell Streamlit to clear the inputs on the NEXT page load
+                    st.session_state.clear_reg = True
+                    st.rerun()
                 else:
                     st.error("Username already exists. Please choose a different one.")
+
 
 # ==========================================
 # APP ROUTING LOGIC
