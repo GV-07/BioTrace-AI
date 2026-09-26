@@ -72,7 +72,6 @@ RECT_LOGO = get_base64_image("BioTrace AI.png")
 if "logged_in" not in st.session_state:
   st.session_state.logged_in = False
   st.session_state.username = ""
-  st.session_state.login_time = ""
 
 if "language" not in st.session_state:
   st.session_state.language = "English"
@@ -219,8 +218,6 @@ def show_login_page():
               if (username_input == "Gokul" and password_input == "") or verify_user(username_input, password_input):
                   st.session_state.logged_in = True
                   st.session_state.username = username_input
-                  # Record the exact Date and Time of login
-                  st.session_state.login_time = datetime.datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
                   st.rerun()
               else:
                   st.error("Invalid username or password. Please check your credentials or register.")
@@ -308,11 +305,6 @@ if RECT_LOGO:
 
 st.sidebar.header(f"{t['welcome']}, {st.session_state.username}!")
 
-# Display the Date and Time the user logged in
-if st.session_state.login_time:
-    st.sidebar.caption(f"🕒 **Last Login:**<br>{st.session_state.login_time}", unsafe_allow_html=True)
-    st.sidebar.markdown("---")
-
 menu = st.sidebar.radio(
     t["nav_menu"],
     [
@@ -331,7 +323,6 @@ st.sidebar.markdown("---")
 if st.sidebar.button(t["logout"], use_container_width=True):
   st.session_state.logged_in = False
   st.session_state.username = ""
-  st.session_state.login_time = ""
   st.rerun()
 
 st.sidebar.markdown("---")
@@ -536,7 +527,7 @@ elif menu == t["indian_meds"]:
 # ------------------------------------------
 # TAB 6: CARDIOPULSE AI
 # ------------------------------------------
-elif menu == "CardioPulse AI":
+elif menu == "🫀CardioPulse AI":
   st.subheader("🫀 CardioPulse AI")
   st.write("CardioPulse AI is hosted on a dedicated platform for advanced cardiovascular health monitoring and prediction.")
   
