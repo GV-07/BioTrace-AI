@@ -210,7 +210,7 @@ def show_login_page():
 
     with tab_login:
         with st.form("login_form"):
-          username_input = st.text_input("Patient / Caregiver Username", value="")
+          username_input = st.text_input("Username", value="")
           password_input = st.text_input("Password", type="password")
           submit_login = st.form_submit_button("Secure Login", type="primary", use_container_width=True)
 
@@ -323,7 +323,7 @@ menu = st.sidebar.radio(
         t["fitness"], 
         t["dashboard"], 
         t["indian_meds"], 
-        "CardioPulse AI",
+        "🫀CardioPulse AI",
         t["contact"], 
         t["settings"]
     ],
