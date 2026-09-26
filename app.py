@@ -191,7 +191,7 @@ def show_login_page():
     # --- ADMIN LOGIN ROUTE ---
     if st.session_state.show_admin_login:
         st.markdown("<h2 style='text-align: center; color: #ff4b4b; margin-top: 10px;'>Admin Access</h2>", unsafe_allow_html=True)
-        st.info("Enter the master password to access the BioTrace SQLite database.")
+        st.info("Enter the master password to access the BioTrace AI SQLite database.")
         with st.form("admin_login_form"):
             admin_pw = st.text_input("Master Password", type="password")
             if st.form_submit_button("Access Database", type="primary", use_container_width=True):
