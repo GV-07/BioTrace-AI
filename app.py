@@ -321,7 +321,7 @@ menu = st.sidebar.radio(
         t["fitness"], 
         t["dashboard"], 
         t["indian_meds"], 
-        "CardioPulse AI",
+        "🫀CardioPulse AI",
         t["contact"], 
         t["settings"]
     ],
