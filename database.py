@@ -9,7 +9,7 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
     
-    # 1. Users Table (Added registration_date)
+    # 1. Users Table (With registration_date)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -20,7 +20,6 @@ def init_db():
     ''')
     
     # Safely attempt to add the new column to existing databases
-    # This prevents crashes if the table was already created in an older version
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN registration_date TEXT")
     except sqlite3.OperationalError:
@@ -56,8 +55,9 @@ def register_user(username, email, password):
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Generates: "Saturday, September 26, 2026 at 04:00 PM"
-        reg_date = datetime.datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+        # --- TIMEZONE FIX: Lock to Indian Standard Time (UTC + 5:30) ---
+        ist_offset = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+        reg_date = datetime.datetime.now(ist_offset).strftime("%A, %B %d, %Y at %I:%M %p")
         
         cursor.execute(
             "INSERT INTO users (username, email, password, registration_date) VALUES (?, ?, ?, ?)", 
