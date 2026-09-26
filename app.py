@@ -308,8 +308,6 @@ if CIRCLE_LOGO:
 else:
   st.title(f"🩺 {t['app_title']}")
 
-st.markdown(t["app_desc"])
-
 if RECT_LOGO:
   st.sidebar.markdown(f"<div style='text-align: center;'><img src='data:image/png;base64,{RECT_LOGO}' width='100%' style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
