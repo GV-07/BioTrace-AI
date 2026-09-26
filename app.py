@@ -1,6 +1,7 @@
 import base64
 import io
 import re
+import datetime
 import streamlit as st
 import streamlit.components.v1 as components
 from gtts import gTTS
@@ -28,7 +29,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# TEXT TO SPEECH HELPER
+# TEXT TO SPEECH HELPER (Cached for Speed!)
 # ==========================================
 LANG_CODES = {
     "English": "en",
@@ -38,6 +39,7 @@ LANG_CODES = {
     "Malayalam (മലയാളം)": "ml"
 }
 
+@st.cache_data(show_spinner=False)
 def generate_tts_audio(text, language):
     try:
         clean_text = text.replace("*", "").replace("#", "")
@@ -51,7 +53,7 @@ def generate_tts_audio(text, language):
         return None
 
 # ==========================================
-# CUSTOM IMAGE LOADER 
+# CUSTOM IMAGE LOADER (Relative Paths for Cloud)
 # ==========================================
 @st.cache_data
 def get_base64_image(image_path):
@@ -70,6 +72,7 @@ RECT_LOGO = get_base64_image("BioTrace AI.png")
 if "logged_in" not in st.session_state:
   st.session_state.logged_in = False
   st.session_state.username = ""
+  st.session_state.login_time = ""
 
 if "language" not in st.session_state:
   st.session_state.language = "English"
@@ -81,10 +84,11 @@ if "show_admin_login" not in st.session_state:
   st.session_state.show_admin_login = False
 
 # --- REGISTRATION CLEARING STATES ---
-# We initialize these empty strings so Streamlit knows they exist before rendering
 for key in ["reg_user", "reg_email", "reg_pw", "reg_conf_pw"]:
     if key not in st.session_state:
         st.session_state[key] = ""
+if "clear_reg" not in st.session_state:
+    st.session_state.clear_reg = False
 
 t = UI_TEXT[st.session_state.language]
 
@@ -106,7 +110,6 @@ def show_admin_db_view():
     
     conn = sqlite3.connect("biotrace.db")
     
-    # --- USERS TABLE & DELETION TOOL ---
     st.markdown("### 👤 Registered Users")
     users_df = pd.read_sql_query("SELECT * FROM users", conn)
     st.dataframe(users_df, use_container_width=True)
@@ -123,9 +126,7 @@ def show_admin_db_view():
             
         if delete_submit and user_to_delete:
             cursor = conn.cursor()
-            # Delete user credentials
             cursor.execute("DELETE FROM users WHERE username = ?", (user_to_delete,))
-            # Cascade delete their health records
             cursor.execute("DELETE FROM medications WHERE username = ?", (user_to_delete,))
             cursor.execute("DELETE FROM fitness_logs WHERE username = ?", (user_to_delete,))
             conn.commit()
@@ -133,7 +134,6 @@ def show_admin_db_view():
             st.rerun()
 
     st.markdown("---")
-    
     st.markdown("### 💊 Active Medications")
     meds_df = pd.read_sql_query("SELECT * FROM medications", conn)
     st.dataframe(meds_df, use_container_width=True)
@@ -195,7 +195,7 @@ def show_login_page():
         with st.form("admin_login_form"):
             admin_pw = st.text_input("Master Password", type="password")
             if st.form_submit_button("Access Database", type="primary", use_container_width=True):
-                if admin_pw == "BTAI@1234": 
+                if admin_pw == "admin123": 
                     st.session_state.admin_logged_in = True
                     st.session_state.show_admin_login = False
                     st.rerun()
@@ -219,6 +219,8 @@ def show_login_page():
               if (username_input == "Gokul" and password_input == "") or verify_user(username_input, password_input):
                   st.session_state.logged_in = True
                   st.session_state.username = username_input
+                  # Record the exact Date and Time of login
+                  st.session_state.login_time = datetime.datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
                   st.rerun()
               else:
                   st.error("Invalid username or password. Please check your credentials or register.")
@@ -226,12 +228,10 @@ def show_login_page():
               st.error("Please enter both username and password.")
 
     with tab_register:
-        # 1. Show success message
         if st.session_state.get("reg_success_msg"):
             st.success("Account created successfully! You can now log in.")
             st.session_state.reg_success_msg = False
 
-        # 2. CRITICAL FIX: Clear the variables BEFORE the widgets are drawn
         if st.session_state.get("clear_reg"):
             st.session_state.reg_user = ""
             st.session_state.reg_email = ""
@@ -239,7 +239,6 @@ def show_login_page():
             st.session_state.reg_conf_pw = ""
             st.session_state.clear_reg = False
 
-        # 3. Render Widgets
         new_username = st.text_input("Choose a Username", key="reg_user")
         email = st.text_input("Email Address", key="reg_email")
         new_pw = st.text_input("Create Password", type="password", key="reg_pw")
@@ -261,7 +260,6 @@ def show_login_page():
                 
         conf_pw = st.text_input("Confirm Password", type="password", key="reg_conf_pw")
 
-        # 4. Form Submission
         if st.button("Create Account", type="primary", use_container_width=True):
             if not new_username or not email or not new_pw or not conf_pw:
                 st.error("Please fill out all required fields.")
@@ -274,7 +272,6 @@ def show_login_page():
             else:
                 if register_user(new_username, email, new_pw):
                     st.session_state.reg_success_msg = True
-                    # 5. Tell Streamlit to clear the inputs on the NEXT page load
                     st.session_state.clear_reg = True
                     st.rerun()
                 else:
@@ -284,12 +281,10 @@ def show_login_page():
 # ==========================================
 # APP ROUTING LOGIC
 # ==========================================
-# 1. If Admin is logged in, show ONLY the database viewer and stop execution
 if st.session_state.admin_logged_in:
     show_admin_db_view()
     st.stop()
 
-# 2. If standard user is NOT logged in, show the login page and stop execution
 if not st.session_state.logged_in:
     show_login_page()
     st.stop()
@@ -308,10 +303,17 @@ if CIRCLE_LOGO:
 else:
   st.title(f"🩺 {t['app_title']}")
 
+st.markdown(t["app_desc"])
+
 if RECT_LOGO:
   st.sidebar.markdown(f"<div style='text-align: center;'><img src='data:image/png;base64,{RECT_LOGO}' width='100%' style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
 st.sidebar.header(f"{t['welcome']}, {st.session_state.username}!")
+
+# Display the Date and Time the user logged in
+if st.session_state.login_time:
+    st.sidebar.caption(f"🕒 **Last Login:**<br>{st.session_state.login_time}", unsafe_allow_html=True)
+    st.sidebar.markdown("---")
 
 menu = st.sidebar.radio(
     t["nav_menu"],
@@ -321,7 +323,7 @@ menu = st.sidebar.radio(
         t["fitness"], 
         t["dashboard"], 
         t["indian_meds"], 
-        "🫀CardioPulse AI",
+        "CardioPulse AI",
         t["contact"], 
         t["settings"]
     ],
@@ -331,6 +333,7 @@ st.sidebar.markdown("---")
 if st.sidebar.button(t["logout"], use_container_width=True):
   st.session_state.logged_in = False
   st.session_state.username = ""
+  st.session_state.login_time = ""
   st.rerun()
 
 st.sidebar.markdown("---")
