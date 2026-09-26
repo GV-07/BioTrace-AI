@@ -61,8 +61,8 @@ def get_base64_image(image_path):
   except Exception:
     return None
 
-CIRCLE_LOGO = get_base64_image(r"C:\Users\VGoku\OneDrive\Documents\BioTrace AI\logo.png")
-RECT_LOGO = get_base64_image(r"C:\Users\VGoku\OneDrive\Documents\BioTrace AI\BioTrace AI.png")
+CIRCLE_LOGO = get_base64_image("logo.png")
+RECT_LOGO = get_base64_image("BioTrace AI.png")
 
 # ==========================================
 # SESSION STATE & LOGIN
