@@ -1,13 +1,19 @@
 import base64
-from config import GEMINI_API_KEY
+import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+
+# Try to get the key from Streamlit Cloud Secrets, fallback to local config.py
+try:
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+except (KeyError, FileNotFoundError):
+    from config import GEMINI_API_KEY
 
 def stream_health_agent_response(query, chat_history, language, media_bytes=None, media_mime=None):
   api_key = GEMINI_API_KEY
 
   if not api_key or "YOUR_ACTUAL" in api_key:
-    yield "⚠️ Please add your valid Gemini API key in `config.py`."
+    yield "⚠️ Please add your valid Gemini API key in `config.py` or Streamlit Secrets."
     return
 
   try:
