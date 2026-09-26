@@ -195,7 +195,7 @@ def show_login_page():
         with st.form("admin_login_form"):
             admin_pw = st.text_input("Master Password", type="password")
             if st.form_submit_button("Access Database", type="primary", use_container_width=True):
-                if admin_pw == "admin123": 
+                if admin_pw == "BTAI@1234": 
                     st.session_state.admin_logged_in = True
                     st.session_state.show_admin_login = False
                     st.rerun()
